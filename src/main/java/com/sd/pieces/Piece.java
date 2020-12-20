@@ -104,6 +104,7 @@ public abstract class Piece {
     protected List<Square> getBishopMoves(Board board) {
         List<Square> legalSquares = new ArrayList<Square>();
 
+
         final int[] xDirs = {-1, -1, 1, 1};
         final int[] yDirs = {-1, 1, -1, 1};
 
