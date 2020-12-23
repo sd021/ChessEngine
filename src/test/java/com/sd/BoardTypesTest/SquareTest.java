@@ -18,7 +18,7 @@ public class SquareTest {
     public void testGetRow() {
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                Square testSquare = new Square(i, j, width, height);
+                Square testSquare = new Square(i, j);
                 int row = testSquare.getRow();
                 assertEquals(i, row);
             }
@@ -30,7 +30,7 @@ public class SquareTest {
     public void testGetColumn() {
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                Square testSquare = new Square(i, j, width, height);
+                Square testSquare = new Square(i, j);
                 int col = testSquare.getColumn();
                 assertEquals(j, col);
             }

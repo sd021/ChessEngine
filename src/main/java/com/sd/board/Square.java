@@ -1,39 +1,55 @@
 package main.java.com.sd.board;
 
 import main.java.com.sd.pieces.Piece;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.lang.Math;
 
 public class Square {
+    private static Logger logger = LogManager.getLogger();
+
     private final int row, col;
     private final int squareNum; // 0 - 63
-    private final int maxRows, maxCols;
+    private final int maxRows= Board.BOARD_HEIGHT;
+    private final int maxCols= Board.BOARD_WIDTH;
     private boolean occupied = false;
     private Piece currentPiece;
 
-    public Square(int row, int col, int width, int height, Piece piece) {
-        this.maxRows = width;
-        this.maxCols = height;
-        this.squareNum =   calcSquareNum(row, col);
-        this.row = convertSquareNumToRow(squareNum);
-        this.col = convertSquareNumToCol(squareNum);
+    public Square(int row, int col, Piece piece) {
+        if (row < 0 || row >= Board.BOARD_HEIGHT || col < 0 || col > Board.BOARD_WIDTH) {
+            logger.error("Cannot create square with provided row/column values (" + row + ", " + col + ")");
+        }
+
+        this.squareNum =  calcSquareNum(row, col);
+        this.row = row;
+        this.col = col;
         this.currentPiece = piece;
         setOccupied(this.currentPiece != null);
     }
 
-    public Square(int row, int col, int width, int height) {
-        this(row, col, width, height, null);
+    public Square(int row, int col) {
+        this(row, col, null);
+    }
+
+    // Copy constructor
+    public Square makeCopy() {
+
+        Piece pieceCopy = getCurrentPiece() == null ? null : this.getCurrentPiece().makeCopy();
+
+        // TODO square piece can be null here
+        return new Square(this.getRow(), this.getColumn(), pieceCopy);
     }
 
     public int getSquareNum() {
         return squareNum;
     }
 
-    public int getSquareRow() {
+    public int getRow() {
         return row;
     }
 
-    public int getSquareCol() {
+    public int getColumn() {
         return col;
     }
 
@@ -51,15 +67,21 @@ public class Square {
 
     public void setCurrentPiece(Piece currentPiece) {
         this.currentPiece = currentPiece;
+
+    }
+
+    public void updateSquare(Piece piece) {
+        setCurrentPiece(piece);
         setOccupied(this.currentPiece != null);
     }
 
-    public int getRow() {
-        return (squareNum / (maxRows));
+    public void updateSquare() {
+        setCurrentPiece(null);
+        setOccupied(this.currentPiece != null);
     }
 
-    public int getColumn() {
-        return squareNum % maxCols;
+    public String getSquareName() {
+        return SquareNames.squareNameFromNumber(this.squareNum);
     }
 
     private int calcSquareNum(int row, int col) {
@@ -76,7 +98,6 @@ public class Square {
 
     // TODO add tests for these
     public static int convertSquareNumToRow(int squareNum) {
-
         return ((int) Math.floor(squareNum / Board.BOARD_HEIGHT));
     }
 
@@ -96,6 +117,8 @@ public class Square {
             piece = "None";
         }
 
-        return "Square (" + SquareNames.squareName(squareNum) +  ") = " + piece;
+        return "Square{" + SquareNames.squareNameFromNumber(squareNum) +
+                ", " + piece +
+                "}";
     }
 }
