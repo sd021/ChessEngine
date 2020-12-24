@@ -1,6 +1,5 @@
-package main.java.com.sd;
+package com.sd;
 
-import main.java.com.sd.board.Board;
 import main.java.com.sd.game.GameDirector;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.*;
@@ -26,19 +25,21 @@ public class Main {
         gameDirector.move(new Move(gameDirector.getBoard().getSquare("D5"),
                 gameDirector.getBoard().getSquare("E4")));
 
-        logger.info(gameDirector.findAllPossibleMoves());
+        logger.info(gameDirector.findAllBasicMoves());
 
-        long startTime = System.currentTimeMillis();
-        for (int i = 0; i < 50000; i++) {
-            List<Move> allMoves = gameDirector.findAllPossibleMoves();
-            for (Move move: allMoves) {
-                gameDirector.getBoard().makePotentialMove(gameDirector.getBoard(), move);
-            }
-        }
+        logger.info(gameDirector.getBoard().getSquare("E3").getCurrentPiece().getLegalMoves(gameDirector.getBoard()));
 
-        long endTime = System.currentTimeMillis();
+        logger.info(gameDirector.isKingInCheck(Colour.BLACK));
 
-        logger.info("Duration: " + (endTime - startTime));
+//        long startTime = System.currentTimeMillis();
+//        for (int i = 0; i < 50000; i++) {
+//            List<Move> allMoves = gameDirector.findAllBasicMoves(Colour.WHITE);
+//            for (Move move: allMoves) {
+//                gameDirector.getBoard().makePotentialMove(gameDirector.getBoard(), move);
+//            }
+//        }
+//        long endTime = System.currentTimeMillis();
+//        logger.info("Duration: " + (endTime - startTime));
        // logger.info(gameDirector.searchMovesByPiece(gameDirector.getBoard().getSquare("E4").getCurrentPiece()));
        // logger.info(gameDirector.findPiece(Pawn.class, Colour.BLACK));
 //        logger.info(gameDirector.getBoard().getSquare("E4"));

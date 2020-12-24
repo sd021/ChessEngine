@@ -248,8 +248,8 @@ public abstract class Piece {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Piece piece = (Piece) o;
-        return Objects.equals(pieceName, piece.pieceName) &&
-                Objects.equals(symbol, piece.symbol) &&
+        return pieceName == piece.pieceName &&
+                symbol == piece.symbol &&
                 colour == piece.colour &&
                 initialSquareNum == piece.initialSquareNum;
     }
