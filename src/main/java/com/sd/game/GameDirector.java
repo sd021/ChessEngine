@@ -1,11 +1,11 @@
 package main.java.com.sd.game;
 
 import main.java.com.sd.board.Board;
+import main.java.com.sd.moves.CastlingMove;
 import main.java.com.sd.moves.Move;
-import main.java.com.sd.pieces.King;
-import main.java.com.sd.pieces.Piece;
+import main.java.com.sd.pieces.*;
 import main.java.com.sd.pieces.colours.Colour;
-import main.java.com.sd.pieces.colours.ColourHelper;
+import main.java.com.sd.players.IPlayer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,92 +13,77 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static main.java.com.sd.pieces.colours.Colour.BLACK;
+import static main.java.com.sd.pieces.colours.Colour.WHITE;
+
 public class GameDirector {
     private static Logger logger = LogManager.getLogger();
 
     private List<Move> gameHistory = new ArrayList<Move>();
-    private List<Piece> allPieces = new ArrayList<Piece>();
-    private List<Piece> takenPieces = new ArrayList<Piece>();
-    private List<Piece> activePieces = new ArrayList<Piece>();
-
     private Board board;
 
-    public GameDirector(Board board) {
-        // Populate piecesList with every piece on the board
-        // TODO update on pawn promotion
-        for (int i = 0; i < Board.BOARD_WIDTH * Board.BOARD_HEIGHT; i++) {
-            if (board.getSquare(i).getCurrentPiece() != null) {
-                allPieces.add(board.getSquare(i).getCurrentPiece());
-                activePieces.add(board.getSquare(i).getCurrentPiece());
-            }
-        }
+    private GamePhase gamePhase;
+    private Colour currentPlayerColour = WHITE;
+    private IPlayer whitePlayer, blackPlayer;
 
+    public GameDirector(Board board, IPlayer whitePlayer, IPlayer blackPlayer) {
         this.board = board;
+        this.whitePlayer = whitePlayer;
+        this.blackPlayer = blackPlayer;
+
+        gamePhase = GamePhase.PLAYING;
     }
 
     public void move(Move move) {
         board.makeMove(move);
+
+        if (move.getClass() == CastlingMove.class) {
+            board.makeMove(((CastlingMove) move).getSecondaryMove());
+        }
         gameHistory.add(move);
 
-        if (move.isCaptureMove()) {
-            takenPieces.add(move.getCapturedPiece());
-            activePieces.remove(move.getCapturedPiece());
-            move.getCapturedPiece().capturePiece();    // TODO taken piece record
-        }
-
+        // Change the player who's go it is
+        updateCurrentPlayer();
         logger.info(board);
     }
 
-    public boolean isKingInCheck(Colour colour) {
-        // find all squares that the other colour can move to
-        // if opposite king is in that set then it is in check
 
-        List<Move> allBasicMoves = findAllBasicMoves(ColourHelper.getOppositeColour(colour), false);
-        List<Piece> kingPieces = findPiece(King.class, colour);
+    private void updateCurrentPlayer() {
+        if (currentPlayerColour == WHITE) currentPlayerColour = BLACK;
+        else currentPlayerColour = WHITE;
+    }
 
-        if (kingPieces.toArray().length != 1) {
-            logger.error("Found more than one king (" + kingPieces + ")");
-            throw new RuntimeException("Found more than one king while checking check!");
-        } else {
-            Piece kingPiece = kingPieces.get(0);
-            for (Move move : allBasicMoves) {
-                // TODO why doesn't this work
-                if (kingPiece == move.getTargetSquare().getCurrentPiece()) {
-                    return true;
-                }
+    private IPlayer getCurrentPlayer() {
+        return currentPlayerColour == WHITE ? whitePlayer : blackPlayer;
+    }
+
+
+
+    public List<Move> findAllPossibleMoves(Colour colour) {
+        MoveFinder moveFinder = new MoveFinder(board, gameHistory, colour);
+        List<Move> movesList = moveFinder.findAllPossibleMoves();
+
+        if (movesList.size() == 0) {
+            if (moveFinder.isKingInCheck(board, PieceLocator.findPiece(board.getActiveColouredPieces(colour), King.class).get(0), colour)) {
+                gamePhase = GamePhase.CHECKMATE;
+                logger.info("GAME OVER: CHECKMATE");
+            } else {
+                gamePhase = GamePhase.STALEMATE;
+                logger.info("GAME OVER: STALEMATE");
             }
         }
-        return false;
+
+        return movesList;
     }
 
-    public List<Move> findAllBasicMoves(Colour colour, boolean excludeKingCapture) {
-        List<Move> moveList = new ArrayList<>();
+    public void doTurn() {
+        List<Move> movesList = findAllPossibleMoves(currentPlayerColour);
 
-        List<Piece> colouredPieces = activePieces.stream()
-                .filter(piece -> piece.getColour() == colour)
-                .collect(Collectors.toList());
-
-        return findAllBasicMoves(colouredPieces, excludeKingCapture);
+        move(getCurrentPlayer().evaluationFunction(movesList));
     }
 
-    public List<Move> findAllBasicMoves(List<Piece> pieces, boolean excludeKingCapture) {
-        List<Move> moveList = new ArrayList<>();
-        for (Piece piece : pieces) {
-            List<Move> legalMoves = piece.getLegalMoves(board);
-            if (excludeKingCapture) {
-                legalMoves = legalMoves.stream()
-                        .filter(move -> move.getTargetSquare().getCurrentPiece() != null)
-                        .filter(move -> move.getTargetSquare().getCurrentPiece().getClass() != King.class)
-                        .collect(Collectors.toList());
-            }
-            moveList.addAll(legalMoves);
-        }
-
-        return moveList;
-    }
-
-    public List<Move> findAllBasicMoves() {
-        return findAllBasicMoves(activePieces, true);
+    public GamePhase getGamePhase() {
+        return gamePhase;
     }
 
     public Board getBoard() {
@@ -115,15 +100,4 @@ public class GameDirector {
                 .collect(Collectors.toList());
     }
 
-    public List<Piece> findPiece(Class pieceClass, Colour pieceColour) {
-        return allPieces.stream()
-                .filter(piece -> piece.getClass() == pieceClass && piece.getColour() == pieceColour)
-                .collect(Collectors.toList());
-    }
-
-    public List<Piece> findPiece(Class pieceClass) {
-        return allPieces.stream()
-                .filter(piece -> piece.getClass() == pieceClass)
-                .collect(Collectors.toList());
-    }
 }

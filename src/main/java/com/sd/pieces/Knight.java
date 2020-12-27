@@ -1,11 +1,13 @@
 package main.java.com.sd.pieces;
 
 import main.java.com.sd.board.Board;
-import main.java.com.sd.board.Square;
+import main.java.com.sd.moves.BasicMove;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.colours.Colour;
 
 import java.util.List;
+
+import static main.java.com.sd.view.GameSprites.*;
 
 public class Knight extends Piece {
 
@@ -13,6 +15,12 @@ public class Knight extends Piece {
          super(colour, squareNum);
          symbol = "N";
          pieceName = "Knight";
+
+         if (colour == Colour.WHITE) {
+             this.pieceSprite = WHITE_KNIGHT;
+         } else {
+             this.pieceSprite = BLACK_KNIGHT;
+         }
      }
 
     public Knight(Colour colour, int squareNum, int initialSquareNum) {

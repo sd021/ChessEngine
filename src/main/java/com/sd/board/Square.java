@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.Math;
+import java.util.Objects;
 
 public class Square {
     private static Logger logger = LogManager.getLogger();
@@ -103,6 +104,23 @@ public class Square {
 
     public static int convertSquareNumToCol(int squareNum) {
         return squareNum % Board.BOARD_WIDTH;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Square square = (Square) o;
+        return row == square.row &&
+                col == square.col &&
+                squareNum == square.squareNum &&
+                maxRows == square.maxRows &&
+                maxCols == square.maxCols;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(row, col, squareNum, maxRows, maxCols, occupied, currentPiece);
     }
 
     @Override
