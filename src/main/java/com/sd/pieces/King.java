@@ -6,6 +6,7 @@ import main.java.com.sd.moves.CastlingMove;
 import main.java.com.sd.moves.BasicMove;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.colours.Colour;
+import main.java.com.sd.utils.ConfigLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,8 @@ public class King extends Piece {
         super(colour, squareNum);
         symbol = "K";
         pieceName = "King";
+        pieceValue = ConfigLoader.loadValueAsInteger("KING_VALUE");
+
 
         if (colour == Colour.WHITE) {
             this.pieceSprite = WHITE_KING;
@@ -31,6 +34,8 @@ public class King extends Piece {
         super(colour, squareNum, initialSquareNum);
         symbol = "K";
         pieceName = "King";
+        pieceValue = ConfigLoader.loadValueAsInteger("KING_VALUE");
+
     }
 
     public King makeCopy() {
@@ -93,7 +98,7 @@ public class King extends Piece {
             return castleMoves;
         }
 
-        castleMoves.add(new CastlingMove(board.getSquare(this.squareNum), board.getSquare(this.squareNum + 2), board.getSquare(rook.getSquareNum()), board.getSquare(rook.getSquareNum() - 2)));
+        castleMoves.add(new CastlingMove(this.squareNum, this.squareNum + 2, rook.getSquareNum(), rook.getSquareNum() - 2));
 
         return castleMoves;
     }
@@ -110,7 +115,7 @@ public class King extends Piece {
             return castleMoves;
         }
 
-        castleMoves.add(new CastlingMove(board.getSquare(this.squareNum), board.getSquare(this.squareNum - 2), board.getSquare(rook.getSquareNum()), board.getSquare(rook.getSquareNum() + 3)));
+        castleMoves.add(new CastlingMove(this.squareNum, this.squareNum - 2 , rook.getSquareNum(), rook.getSquareNum() + 3));
 
         return castleMoves;
     }
@@ -128,7 +133,7 @@ public class King extends Piece {
 
         // Check king + rook are not in game history (ie. they haven't been moved yet)
         if (gameHistory.stream()
-                .filter(move -> move.getInitialSquare().getCurrentPiece().equals(this) || move.getInitialSquare().getCurrentPiece().equals(rook))
+                .filter(move -> move.getInitialSquare(board).equals(this.getSquareNum()) || move.getInitialSquare(board).equals(rook.getSquareNum()))
                 .collect(Collectors.toList())
                 .toArray()
                 .length > 0) {

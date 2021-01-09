@@ -4,6 +4,7 @@ import main.java.com.sd.board.Board;
 import main.java.com.sd.moves.BasicMove;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.colours.Colour;
+import main.java.com.sd.utils.ConfigLoader;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class Rook extends Piece {
          super(colour, squareNum);
          symbol = "R";
          pieceName = "Rook";
+         pieceValue = ConfigLoader.loadValueAsInteger("ROOK_VALUE");
 
          if (colour == Colour.WHITE) {
              this.pieceSprite = WHITE_ROOK;
@@ -27,6 +29,8 @@ public class Rook extends Piece {
         super(colour, squareNum, initialSquareNum);
         symbol = "R";
         pieceName = "Rook";
+        pieceValue = ConfigLoader.loadValueAsInteger("ROOK_VALUE");
+
     }
 
     public Rook makeCopy() {

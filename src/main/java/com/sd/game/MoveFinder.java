@@ -21,7 +21,7 @@ public class MoveFinder {
     private Board board;
     private List<Move> gameHistory;
     private List<Piece> allyPieces, enemyPieces;
-//
+
     public MoveFinder(Board board, List<Move> gameHistory, Colour colour) {
         this.board = board;
         this.gameHistory = gameHistory;
@@ -30,18 +30,32 @@ public class MoveFinder {
         this.enemyPieces = board.getActiveColouredPieces(ColourHelper.getOppositeColour(colour));
     }
 
-    public  List<Move> findAllPossibleMoves() {
+    public MoveFinder(Board board, List<Move> gameHistory) {
+        this(board, gameHistory, Colour.WHITE);
+    }
+
+    public void updateGameEvents(Board board, List<Move> gameHistory, Colour colour) {
+        this.board = board;
+        this.gameHistory = gameHistory;
+        this.colour = colour;
+        this.allyPieces = board.getActiveColouredPieces(colour);
+        this.enemyPieces = board.getActiveColouredPieces(ColourHelper.getOppositeColour(colour));
+    }
+
+    public List<Move> findAllPossibleMoves(Board board, boolean excludeKingCapture) {
         List<Move> moveList = new ArrayList<>();
 
-        moveList.addAll(findAllBasicMoves(board, allyPieces, true));
+        moveList.addAll(findAllBasicMoves(board, allyPieces, excludeKingCapture, false));
 
         List<Piece> kingList = PieceLocator.findPiece(allyPieces, King.class);
         List<Piece> rookList = PieceLocator.findPiece(allyPieces, Rook.class);
         List<Piece> pawnList = PieceLocator.findPiece(allyPieces, Pawn.class);
 
+        List<Square> checkedSquares = getCheckedSquares(board, enemyPieces, true);
+
         if (kingList.toArray().length == 1) {
             King king = ((King) kingList.get(0));
-            moveList.addAll(king.getCastlingMoves(board, rookList, gameHistory, getCheckedSquares(board, enemyPieces)));
+            moveList.addAll(king.getCastlingMoves(board, rookList, gameHistory, checkedSquares));
         }
 
         for (Piece pawn : pawnList) {
@@ -52,13 +66,22 @@ public class MoveFinder {
         ListIterator<Move> moveListIterator = moveList.listIterator();
 
 
-        while(moveListIterator.hasNext()) {
-            Board newBoard = board.makePotentialMove(board, moveListIterator.next());
-            Piece allyKing = PieceLocator.findPiece(newBoard.getActiveColouredPieces(colour), King.class).get(0);
-            Piece enemyKing = PieceLocator.findPiece(newBoard.getActiveColouredPieces(ColourHelper.getOppositeColour(colour)), King.class).get(0);
-            if (isKingInCheck(newBoard, allyKing, colour)) {
+        while (moveListIterator.hasNext()) {
+            // TODO
+            // actually make move here and then unmake it
+            // don't have moves made up of squares
+            // just instructions and let them be fully reversible
+            // everytime you access a move.getinitialmove.getcurrentpiece has to be redone
+
+            Move testMove = moveListIterator.next();
+
+            board.makeMove(testMove);
+            Piece allyKing = PieceLocator.findPiece(board.getActiveColouredPieces(colour), King.class).get(0);
+            Piece enemyKing = PieceLocator.findPiece(board.getActiveColouredPieces(ColourHelper.getOppositeColour(colour)), King.class).get(0);
+            if (isKingInCheck(board, allyKing, colour)) {
                 moveListIterator.remove();
             }
+            board.reverseMove(testMove);
         }
 
         return moveList;
@@ -71,12 +94,18 @@ Used for finding squares that are under attack and building full list of possibl
 excludeKingCapture should be true unless you are checking if a king is in check
  */
     // TODO make private?
-    public  List<Move> findAllBasicMoves(Board board, List<Piece> pieces, boolean excludeKingCapture) {
+    public List<Move> findAllBasicMoves(Board board, List<Piece> pieces, boolean excludeKingCapture, boolean includePawnChecks) {
         List<Move> moveList = new ArrayList<>();
         for (Piece piece : pieces) {
-            List<Move> legalMoves = piece.getLegalMoves(board);
+            List<Move> legalMoves;
+
+            if (piece.getClass() == Pawn.class) {
+                legalMoves = ((Pawn) piece).getLegalMoves(board, includePawnChecks);
+            } else {
+                legalMoves = piece.getLegalMoves(board);
+            }
             if (excludeKingCapture) {
-                legalMoves.removeIf(move -> move.getTargetSquare().getCurrentPiece() != null && move.getTargetSquare().getCurrentPiece().getClass() == King.class);
+                legalMoves.removeIf(move -> move.getTargetSquare(board).getCurrentPiece() != null && move.getTargetSquare(board).getCurrentPiece().getClass() == King.class);
             }
             moveList.addAll(legalMoves);
         }
@@ -85,50 +114,31 @@ excludeKingCapture should be true unless you are checking if a king is in check
     }
 
 
-
     /*
     Find all squares that the other colour can move to
     If opposite king is in that set then it is in check
     */
-    public  boolean isKingInCheck(Board potentialBoard, Piece king, Colour colour) {
+    public boolean isKingInCheck(Board potentialBoard, Piece king, Colour colour) {
 
-        // TODO use this for attacking squares on king check
-//        Board boardWithoutKing = new Board(board);
-//        Square newKingSquare = boardWithoutKing.getSquare(findPiece(King.class, colour).get(0).getSquareNum()).makeCopy();
-//        newKingSquare.updateSquare();
-//        boardWithoutKing.setSquare(newKingSquare);
-            return isSquareChecked(potentialBoard, potentialBoard.getSquare(king.getSquareNum()), potentialBoard.getActiveColouredPieces(ColourHelper.getOppositeColour(colour)));
-    }
+        //TODO
+        // put each kind of piece on this square and test if its there
 
-    // Check if opposite colour has a square checked on you
-    public  boolean isSquareChecked(Board potentialBoard, Square square, List<Piece> enemyPieces) {
-        int numCheckedSquares = getCheckedSquares(potentialBoard, enemyPieces).stream()
-                .filter(sq -> sq.equals(square))
-                .collect(Collectors.toList()).toArray().length;
-
-        return numCheckedSquares == 1;
+        if (getCheckedSquares(potentialBoard, potentialBoard.getActiveColouredPieces(ColourHelper.getOppositeColour(colour)), false).contains(potentialBoard.getSquare(king.getSquareNum()))) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 
     // Get a list of squares that opposite colour has in check
-    public  List<Square> getCheckedSquares(Board potentialBoard, List<Piece> enemyPieces) {
-        List<Move> allBasicMoves = findAllBasicMoves(potentialBoard, enemyPieces, false);
+    public List<Square> getCheckedSquares(Board potentialBoard, List<Piece> enemyPieces, boolean includePawnChecks) {
+        List<Move> allBasicMoves = findAllBasicMoves(potentialBoard, enemyPieces, false, includePawnChecks);
         List<Square> checkedSquares = new ArrayList<>();
         LinkedHashSet<Square> hashSet = new LinkedHashSet<Square>();
 
         for (Move move : allBasicMoves) {
-            if (hashSet.add(move.getTargetSquare())) checkedSquares.add(move.getTargetSquare());
-        }
-
-        // Pawn attacking checks
-        List<Piece> pawnPieces = enemyPieces.stream()
-                .filter(piece -> piece.getClass() == Pawn.class)
-                .collect(Collectors.toList());
-
-        for (Piece pawn : pawnPieces) {
-            for (Move move : ((Pawn) pawn).getAttackingSquares(potentialBoard)) {
-                if (hashSet.add(move.getTargetSquare())) checkedSquares.add(move.getTargetSquare());
-            }
+            if (hashSet.add(move.getTargetSquare(board))) checkedSquares.add(move.getTargetSquare(board));
         }
 
         return checkedSquares;

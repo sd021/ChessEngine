@@ -1,18 +1,19 @@
 package main.java.com.sd.moves;
 
+import main.java.com.sd.board.Board;
 import main.java.com.sd.board.Square;
+import main.java.com.sd.pieces.Piece;
 
 public class EnPassantMove extends Move {
-    private final Square takenSquare;
-    public EnPassantMove(Square initialSquare, Square targetSquare, Square takenSquare) {
-        super(initialSquare, targetSquare);
+    private final int takenSquare;
+    public EnPassantMove(int initialSquare, int targetSquare, int takenSquare, Piece capturedPiece) {
+        super(initialSquare, targetSquare, capturedPiece);
         this.takenSquare = takenSquare;
 
         captureMove = true;
-        capturedPiece = takenSquare.getCurrentPiece();
     }
 
-    public Square getTakenSquare() {
-        return takenSquare;
+    public Square getTakenSquare(Board board) {
+        return board.getSquare(takenSquare);
     }
 }

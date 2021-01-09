@@ -9,9 +9,12 @@ import main.java.com.sd.pieces.Rook;
 
 public class BasicMove extends Move {
 
-    public BasicMove(Square initialSquare, Square targetSquare) {
-        super(initialSquare, targetSquare);
-        validateMove();
+    public BasicMove(int initialSquare, int targetSquare, Piece capturedPiece) {
+        super(initialSquare, targetSquare, capturedPiece);
+    }
+
+    public BasicMove(int initialSquare, int targetSquare) {
+        super(initialSquare, targetSquare, null);
     }
 
 }

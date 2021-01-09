@@ -4,7 +4,9 @@ import main.java.com.sd.board.Board;
 import main.java.com.sd.moves.BasicMove;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.colours.Colour;
+import main.java.com.sd.utils.ConfigLoader;
 
+import java.io.IOException;
 import java.util.List;
 
 import static main.java.com.sd.view.GameSprites.*;
@@ -15,6 +17,7 @@ public class Knight extends Piece {
          super(colour, squareNum);
          symbol = "N";
          pieceName = "Knight";
+         pieceValue = ConfigLoader.loadValueAsInteger("KNIGHT_VALUE");
 
          if (colour == Colour.WHITE) {
              this.pieceSprite = WHITE_KNIGHT;
@@ -27,6 +30,8 @@ public class Knight extends Piece {
         super(colour, squareNum, initialSquareNum);
         symbol = "N";
         pieceName = "Knight";
+        pieceValue = ConfigLoader.loadValueAsInteger("KNIGHT_VALUE");
+
     }
 
     public Knight makeCopy() {

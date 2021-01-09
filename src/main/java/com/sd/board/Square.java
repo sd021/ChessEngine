@@ -89,7 +89,19 @@ public class Square {
         return Math.min(((row * maxCols) + col), maxRows * maxCols);
     }
 
+    public static int convertSquareNameToSquareNum(String squareName) {
+            return SquareNames.squareNumberFromName(squareName);
+    }
+
     public static int convertRowColToSquareNum(int row, int col) {
+        if (row < 0 || row > Board.BOARD_HEIGHT - 1 || col < 0 || col > Board.BOARD_WIDTH -1) {
+            return -1;
+        }
+
+        return Math.min(((row * Board.BOARD_HEIGHT) + col), (Board.BOARD_WIDTH * Board.BOARD_HEIGHT));
+    }
+
+    public static int convertSquareNameToSquareNum(int row, int col) {
         if (row < 0 || row > Board.BOARD_HEIGHT - 1 || col < 0 || col > Board.BOARD_WIDTH -1) {
             return -1;
         }
@@ -128,7 +140,7 @@ public class Square {
     {
         String piece;
 
-        if (occupied) {
+        if (currentPiece != null) {
             piece = currentPiece.toString();
         }
         else {
@@ -137,6 +149,7 @@ public class Square {
 
         return "Square{" + SquareNames.squareNameFromNumber(squareNum) +
                 ", " + piece +
+                ", " + isOccupied() +
                 "}";
     }
 }

@@ -7,6 +7,8 @@ import main.java.com.sd.moves.Move;
 import main.java.com.sd.moves.NonBindingMove;
 import main.java.com.sd.moves.PawnPromotionMove;
 import main.java.com.sd.pieces.colours.Colour;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -14,6 +16,8 @@ import java.util.List;
 import java.util.Objects;
 
 public abstract class Piece {
+    private static Logger logger = LogManager.getLogger();
+
     public BufferedImage pieceSprite;
     protected String pieceName;
     protected String symbol = "";
@@ -23,6 +27,7 @@ public abstract class Piece {
     protected int squareNum;
     protected int squareRow;
     protected int squareCol;
+    protected int pieceValue;
 
     Piece(Colour colour, int squareNum) {
         this(colour, squareNum, squareNum);
@@ -64,16 +69,20 @@ public abstract class Piece {
         final Square currentSquare = board.getSquare(squareRow, squareCol);
         Square targetMoveSquare = board.getSquare(currentSquare.getRow() + getDirection(), currentSquare.getColumn());
 
+        if (targetMoveSquare == null) {
+            logger.debug(board);
+            logger.debug(currentSquare);
+            System.out.println("YOOOOO");
+        }
+
         if (!getAttackedSquares) {
             if (!targetMoveSquare.isOccupied()) {
 
                 // Prevent adding a move to last row as pawn must be promoted in that case
                 if ((getDirection() == 1 && squareRow != 6) || (getDirection() == -1 && squareRow != 1)) {
-                    if (board.checkValidPosition(new BasicMove(currentSquare, targetMoveSquare))) {
-                        legalMoves.add(new BasicMove(currentSquare, targetMoveSquare));
-                    }
+                        legalMoves.add(new BasicMove(currentSquare.getSquareNum(), targetMoveSquare.getSquareNum()));
                 } else {
-                    legalMoves.addAll(PawnPromotionMove.generatePromotionMoves(currentSquare, targetMoveSquare));
+                    legalMoves.addAll(PawnPromotionMove.generatePromotionMoves(colour, currentSquare.getSquareNum(), targetMoveSquare.getSquareNum(), this, targetMoveSquare.getCurrentPiece()));
                 }
             }
         }
@@ -86,15 +95,16 @@ public abstract class Piece {
         for (Square targetSquare : targetTakeSquares) {
             if (targetSquare != null) {
                 if (getAttackedSquares) {
-                    legalMoves.add(new NonBindingMove(currentSquare, targetSquare));
+                    // Used for testing checked squares during castling
+                    legalMoves.add(new NonBindingMove(currentSquare.getSquareNum(), targetSquare.getSquareNum()));
                 } else if (targetSquare.isOccupied()) {
                     // Prevent adding a move to last row as pawn must be promoted in that case
                     if ((getDirection() == 1 && squareRow != 6) || (getDirection() == -1 && squareRow != 1)) {
                         if (targetSquare.getCurrentPiece().getColour() != this.getColour()) {
-                            legalMoves.add(new BasicMove(currentSquare, targetSquare));
+                            legalMoves.add(new BasicMove(currentSquare.getSquareNum(), targetSquare.getSquareNum(), targetSquare.getCurrentPiece()));
                         }
                     } else {
-                        legalMoves.addAll(PawnPromotionMove.generatePromotionMoves(currentSquare, targetSquare));
+                        legalMoves.addAll(PawnPromotionMove.generatePromotionMoves(colour, currentSquare.getSquareNum(), targetSquare.getSquareNum(), this, targetSquare.getCurrentPiece()));
                     }
                 }
             }
@@ -129,8 +139,8 @@ public abstract class Piece {
                         shouldAddSquare = true;
                     }
 
-                    if (shouldAddSquare && board.checkValidPosition(new BasicMove(currentSquare, targetSquare))) {
-                        legalMoves.add(new BasicMove(currentSquare, targetSquare));
+                    if (shouldAddSquare) {
+                        legalMoves.add(new BasicMove(currentSquare.getSquareNum(), targetSquare.getSquareNum(), targetSquare.getCurrentPiece()));
                     }
                 }
             }
@@ -164,7 +174,13 @@ public abstract class Piece {
                     continueSearch = false;
 
                     // If piece belongs to other colour we can move there
-                    if (targetSquare.getCurrentPiece().colour != this.colour) {
+                    if (targetSquare.getCurrentPiece() == null) {
+                        System.out.println(currentSquare);
+                        System.out.println(targetSquare);
+                        System.out.println(board);
+                    }
+
+                    if (targetSquare.getCurrentPiece().getColour() != this.colour) {
                         shouldAddSquare = true;
                     }
                 } else {
@@ -172,13 +188,12 @@ public abstract class Piece {
                 }
 
                 if (targetSquare != null) {
-                    if (shouldAddSquare && board.checkValidPosition(new BasicMove(currentSquare, targetSquare))) {
-                        legalMoves.add(new BasicMove(currentSquare, targetSquare));
+                    if (shouldAddSquare) {
+                        legalMoves.add(new BasicMove(currentSquare.getSquareNum(), targetSquare.getSquareNum(), targetSquare.getCurrentPiece()));
                     }
                 }
 
                 // If it is a king we only want to look one square in each direction
-                // TODO can put check for other king here
                 if (singleSquare) {
                     break;
                 }
@@ -220,25 +235,6 @@ public abstract class Piece {
         return getRadialMoves(board, xDirs, yDirs, true);
     }
 
-    // TODO or causes check
-    // maybe move to its own class
-    private boolean checkMoveValidity(Square targetSquare) {
-        if (targetSquare == null) {
-            return false;
-        }
-
-        if (targetSquare.isOccupied()) {
-            // todo think about this more
-            if (targetSquare.getCurrentPiece().colour == this.colour) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-
-        return true;
-    }
-
     public String getSymbol() {
         return symbol;
     }
@@ -254,6 +250,10 @@ public abstract class Piece {
         } else {
             return symbol;
         }
+    }
+
+    public int getPieceValue() {
+        return pieceValue;
     }
 
     public String getPieceName() {
@@ -283,6 +283,7 @@ public abstract class Piece {
                 ", colour=" + colour +
                 ", squareRow=" + squareRow +
                 ", squareCol=" + squareCol +
+                ", pieceVal=" + pieceValue +
                 ", hasBeenCaptured=" + hasBeenCaptured +
                 '}';
     }

@@ -5,23 +5,19 @@ import main.java.com.sd.pieces.King;
 import main.java.com.sd.pieces.Rook;
 
 public class CastlingMove extends Move {
-    private Square secondaryInitialSquare, secondaryTargetSquare;
+    private int secondaryInitialSquare, secondaryTargetSquare;
     private boolean kingSide;
 
-    public CastlingMove(Square primaryInitialSquare, Square primaryTargetSquare, Square secondaryInitialSquare,
-                        Square secondaryTargetSquare) {
+    public CastlingMove(int primaryInitialSquare, int primaryTargetSquare, int secondaryInitialSquare,
+                        int secondaryTargetSquare) {
         super(primaryInitialSquare, primaryTargetSquare);
-        this.secondaryInitialSquare = secondaryInitialSquare.makeCopy();
-        this.secondaryTargetSquare = secondaryTargetSquare.makeCopy();
+        this.secondaryInitialSquare = secondaryInitialSquare;
+        this.secondaryTargetSquare = secondaryTargetSquare;
 
         this.captureMove = false;
 
-        if (initialSquare.getCurrentPiece().getClass() != King.class && secondaryInitialSquare.getCurrentPiece().getClass() != Rook.class) {
-            throw new IllegalArgumentException("Main moving piece must be a King and secondary piece must be a rook (Castling)");
-        }
-
         // If the rook involved is on the 1 file it is a queenside castle
-        if (secondaryInitialSquare.getColumn() == 0) kingSide = false;
+        if (Square.convertSquareNumToCol(secondaryInitialSquare) == 0) kingSide = false;
         else kingSide = true;
     }
 
@@ -39,7 +35,6 @@ public class CastlingMove extends Move {
     public String toString() {
         return "CastlingMove{" +
                 "" + getCastleType() +
-                " for " + secondaryInitialSquare.getCurrentPiece().getColour() +
                 '}';
     }
 }

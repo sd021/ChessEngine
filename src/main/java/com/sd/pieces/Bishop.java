@@ -3,6 +3,7 @@ package main.java.com.sd.pieces;
 import main.java.com.sd.board.Board;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.colours.Colour;
+import main.java.com.sd.utils.ConfigLoader;
 
 import java.util.List;
 
@@ -15,6 +16,8 @@ public class Bishop extends Piece {
          super(colour, squareNum);
          symbol = "B";
          pieceName = "Bishop";
+         pieceValue = ConfigLoader.loadValueAsInteger("BISHOP_VALUE");
+
 
          if (colour == Colour.WHITE) {
              this.pieceSprite = WHITE_BISHOP;
@@ -27,7 +30,8 @@ public class Bishop extends Piece {
         super(colour, squareNum, initialSquareNum);
         symbol = "B";
         pieceName = "Bishop";
-    }
+        pieceValue = ConfigLoader.loadValueAsInteger("BISHOP_VALUE");
+     }
 
     public Bishop makeCopy() {
         return new Bishop(this.colour, this.squareNum, this.initialSquareNum);

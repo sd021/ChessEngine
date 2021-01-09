@@ -11,8 +11,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import static main.java.com.sd.pieces.colours.Colour.BLACK;
 import static main.java.com.sd.pieces.colours.Colour.WHITE;
 
@@ -54,16 +52,6 @@ public class Board {
         }
     }
 
-    public void updateColouredPieceLists() {
-        whitePieces = activePieces.stream()
-                .filter(piece -> piece.getColour() == WHITE)
-                .collect(Collectors.toList());
-
-        blackPieces = activePieces.stream()
-                .filter(piece -> piece.getColour() == BLACK)
-                .collect(Collectors.toList());
-    }
-
 
     public Square getSquare(int squareNum) {
         if (squareNum == -1) {
@@ -76,6 +64,10 @@ public class Board {
     public Square getSquare(int row, int col) {
         int squareNum = Square.convertRowColToSquareNum(row, col);
         return getSquare(squareNum);
+    }
+
+    public Square getSquare(Square square) {
+        return boardArray[square.getSquareNum()];
     }
 
     public static int getSquareDistances(Square square1, Square square2) {
@@ -97,7 +89,8 @@ public class Board {
             if (square.getCurrentPiece() != null) {
                 allPieces.add(square.getCurrentPiece());
                 activePieces.add(square.getCurrentPiece());
-                updateColouredPieceLists();
+                if (square.getCurrentPiece().getColour() == WHITE) whitePieces.add(square.getCurrentPiece());
+                if (square.getCurrentPiece().getColour() == BLACK) blackPieces.add(square.getCurrentPiece());
             }
         }
     }
@@ -122,6 +115,16 @@ public class Board {
         return whitePieces;
     }
 
+    private void addColouredPiece(Piece piece) {
+        if (piece.getColour() == WHITE) whitePieces.add(piece);
+        if (piece.getColour()== BLACK) blackPieces.add(piece);
+    }
+
+    private void removeColouredPiece(Piece piece) {
+        if (piece.getColour() == WHITE) whitePieces.remove(piece);
+        if (piece.getColour()== BLACK) blackPieces.remove(piece);
+    }
+
     public boolean checkValidPosition(BasicMove move) {
         return true;
     }
@@ -130,49 +133,95 @@ public class Board {
         makeMove(this, move);
     }
 
+    public void reverseMove(Move move) {
+        reverseMove(this, move);
+    }
+
     public void makeMove(Board board, Move move) {
         String takenString = "";
         Piece movingPiece;
 
         if (move.getClass() == PawnPromotionMove.class) {
-            movingPiece = move.getInitialSquare().getCurrentPiece();
+            movingPiece = ((PawnPromotionMove) move).getDesiredPiece();
         } else {
-            movingPiece = move.getBoardSquare(board, move.getInitialSquare()).getCurrentPiece();
+            movingPiece = move.getInitialSquare(board).getCurrentPiece();
         }
 
         // Set moving piece square to new square
-        movingPiece.updatePieceSquare(move.getTargetSquare().getSquareNum());
+        if (movingPiece == null) {
+            logger.info(move);
+            logger.info(board);
+        }
+        movingPiece.updatePieceSquare(move.getTargetSquare());
 
         // Set target square piece to moving piece
-        move.getBoardSquare(board, move.getTargetSquare()).updateSquare(movingPiece);
+        move.getTargetSquare(board).updateSquare(movingPiece);
 
         // Remove the moving piece from initial square
-        move.getBoardSquare(board, move.getInitialSquare()).updateSquare();
+        move.getInitialSquare(board).updateSquare();
 
         if (move.isCaptureMove()) {
             board.takenPieces.add(move.getCapturedPiece());
             board.activePieces.remove(move.getCapturedPiece());
-            board.updateColouredPieceLists();
-
+            removeColouredPiece(move.getCapturedPiece());
             move.getCapturedPiece().setHasBeenCaptured(true);
 
             if (move.getClass() == EnPassantMove.class) {
-                board.getSquare(((EnPassantMove) move).getTakenSquare().getSquareNum()).setCurrentPiece(null);
+                ((EnPassantMove) move).getTakenSquare(board).updateSquare(null);
             }
         }
 
         if (move.getClass() == PawnPromotionMove.class) {
-            activePieces.add(move.getTargetSquare().getCurrentPiece());
-            board.updateColouredPieceLists();
+            activePieces.add(((PawnPromotionMove) move).getDesiredPiece());
+            activePieces.remove(((PawnPromotionMove) move).getPawnPiece());
+            removeColouredPiece(((PawnPromotionMove) move).getPawnPiece());
+            addColouredPiece(((PawnPromotionMove) move).getDesiredPiece());
         }
     }
 
-    public Board makePotentialMove(Board board, Move move) {
-        Board returnBoard = new Board(board);
+    public void reverseMove(Board board, Move move) {
+        Piece movedPiece;
+        Piece restorePiece;
 
-        makeMove(returnBoard, move);
+        if (move.getClass() == PawnPromotionMove.class) {
+            movedPiece = ((PawnPromotionMove) move).getPawnPiece();
+        } else {
+            movedPiece = move.getBoardSquare(board, move.getTargetSquare(board)).getCurrentPiece();
+        }
 
-        return returnBoard;
+        restorePiece = move.getCapturedPiece();
+
+        // Set moving piece square to initial square
+        movedPiece.updatePieceSquare(move.getInitialSquare(board).getSquareNum());
+
+        // Set initial square piece to moved piece
+        move.getInitialSquare(board).updateSquare(movedPiece);
+
+        // Restore original piece (or no piece) to target square
+        move.getTargetSquare(board).updateSquare(restorePiece);
+
+        if (move.isCaptureMove()) {
+            board.takenPieces.remove(move.getCapturedPiece());
+            board.activePieces.add(move.getCapturedPiece());
+            addColouredPiece(move.getCapturedPiece());
+
+            move.getCapturedPiece().setHasBeenCaptured(false);
+
+            if (move.getClass() == EnPassantMove.class) {
+                ((EnPassantMove) move).getTargetSquare(board).updateSquare(null);
+                ((EnPassantMove) move).getTakenSquare(board).updateSquare(move.getCapturedPiece());
+            }
+        }
+
+        if (move.getClass() == PawnPromotionMove.class) {
+            //TODO
+            activePieces.remove(((PawnPromotionMove) move).getDesiredPiece());
+            activePieces.add(((PawnPromotionMove) move).getPawnPiece());
+            addColouredPiece(((PawnPromotionMove) move).getPawnPiece());
+            removeColouredPiece(((PawnPromotionMove) move).getDesiredPiece());
+        }
+
+
     }
 
     @Override
@@ -190,8 +239,9 @@ public class Board {
             outStr += "\n";
         }
 
-        return "Board{\n" +
-                outStr +
-                '}';
+        return "\n" + outStr
+                + "WhitePieces = " + this.whitePieces + "\n"
+                + "BlackPieces = " + this.blackPieces + "\n"
+                + "TakenPieces = " + this.takenPieces + "\n";
     }
 }

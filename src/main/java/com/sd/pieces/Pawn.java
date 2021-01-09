@@ -7,6 +7,7 @@ import main.java.com.sd.moves.EnPassantMove;
 import main.java.com.sd.moves.InitialPawnMove;
 import main.java.com.sd.moves.Move;
 import main.java.com.sd.pieces.colours.Colour;
+import main.java.com.sd.utils.ConfigLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,8 @@ public class Pawn extends Piece {
         super(colour, squareNum);
         symbol = "P";
         pieceName = "Pawn";
+        pieceValue = ConfigLoader.loadValueAsInteger("PAWN_VALUE");
+
 
         if (colour == Colour.WHITE) {
             this.pieceSprite = WHITE_PAWN;
@@ -31,11 +34,11 @@ public class Pawn extends Piece {
         super(colour, squareNum, initialSquareNum);
         symbol = "P";
         pieceName = "Pawn";
+        pieceValue = ConfigLoader.loadValueAsInteger("PAWN_VALUE");
+
+
     }
 
-    public List<Move> getAttackingSquares(Board board) {
-        return this.getPawnMoves(board, true);
-    }
 
     public Pawn makeCopy() {
         return new Pawn(this.colour, this.squareNum, this.initialSquareNum);
@@ -46,12 +49,16 @@ public class Pawn extends Piece {
         return this.getPawnMoves(board, false);
     }
 
+    public List<Move> getLegalMoves(Board board, boolean getAttackedSquares) {
+        return this.getPawnMoves(board, getAttackedSquares);
+    }
+
     public List<Move> getInitialMoves(Board board) {
         List<Move> initialMoves = new ArrayList<>();
         if ((this.getSquareNum() == this.getInitialSquareNum()) && ((getDirection() == 1 && squareRow == 1) || (getDirection() == -1 && squareRow == 6))) {
             if (!board.getSquare(squareRow + getDirection(), squareCol).isOccupied()
                     && !board.getSquare(squareRow + getDirection() * 2, squareCol).isOccupied()) {
-                initialMoves.add(new InitialPawnMove(board.getSquare(squareNum), board.getSquare(squareRow + (getDirection() * 2), squareCol)));
+                initialMoves.add(new InitialPawnMove(squareNum, Square.convertRowColToSquareNum(squareRow + (getDirection() * 2), squareCol)));
             }
         }
 
@@ -77,7 +84,7 @@ public class Pawn extends Piece {
             return enPassantMoves;
         }
 
-        List<Move> attackingSquares = getAttackingSquares(board);
+        List<Move> attackingSquares = getLegalMoves(board, true);
 
         // If in the last move a pawn in our lateral square moved there from the square two above/below
         List<Square> lateralSquares = new ArrayList<>();
@@ -92,11 +99,11 @@ public class Pawn extends Piece {
 
             // If the square next to the pawn was an InitialPawnMove
             for (Square square : lateralSquares) {
-                if (lastMove.getTargetSquare().equals(square) &&
+                if (lastMove.getTargetSquare(board).equals(square) &&
                         lastMove.getClass() == InitialPawnMove.class) {
-                    enPassantMoves.add(new EnPassantMove(board.getSquare(squareNum),
-                            board.getSquare(square.getRow() + getDirection(),
-                                    square.getColumn()), square));
+                    enPassantMoves.add(new EnPassantMove(squareNum,
+                            Square.convertRowColToSquareNum(square.getRow() + getDirection(),
+                                    square.getColumn()), square.getSquareNum(), square.getCurrentPiece()));
                 }
             }
         }
